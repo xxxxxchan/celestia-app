@@ -108,6 +108,14 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 
 	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createSimappAndExport, addModuleInitFlags)
 
+	// add the log-format and log-level flags back to the start command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "start" {
+			c.Flags().String(flags.FlagLogLevel, "info", "Define the level of logging")
+			c.Flags().String(flags.FlagLogFormat, "plain", "Define the format of the log output")
+		}
+	}
+
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
 		rpc.StatusCommand(),
