@@ -9,7 +9,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/snapshots"
 	"github.com/lazyledger/lazyledger-app/app/params"
+	"github.com/rs/zerolog"
 
+	tmcfg "github.com/lazyledger/lazyledger-core/config"
 	tmcli "github.com/lazyledger/lazyledger-core/libs/cli"
 	"github.com/lazyledger/lazyledger-core/libs/log"
 	"github.com/spf13/cast"
@@ -36,6 +38,8 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/lazyledger/lazyledger-app/app"
 )
+
+const appName = "lazyledgerapp"
 
 var ChainID string
 
@@ -88,6 +92,9 @@ func Execute(rootCmd *cobra.Command) error {
 	ctx = context.WithValue(ctx, client.ClientContextKey, &client.Context{})
 	ctx = context.WithValue(ctx, server.ServerContextKey, server.NewDefaultContext())
 
+	rootCmd.PersistentFlags().String(flags.FlagLogLevel, zerolog.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
+	rootCmd.PersistentFlags().String(flags.FlagLogFormat, tmcfg.LogFormatPlain, "The logging format (json|plain)")
+
 	executor := tmcli.PrepareBaseCmd(rootCmd, "", app.DefaultNodeHome(appName))
 	return executor.ExecuteContext(ctx)
 }
@@ -107,14 +114,6 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	)
 
 	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createSimappAndExport, addModuleInitFlags)
-
-	// add the log-format and log-level flags back to the start command
-	for _, c := range rootCmd.Commands() {
-		if c.Use == "start" {
-			c.Flags().String(flags.FlagLogLevel, "info", "Define the level of logging")
-			c.Flags().String(flags.FlagLogFormat, "plain", "Define the format of the log output")
-		}
-	}
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
