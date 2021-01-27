@@ -2,11 +2,13 @@ package keeper
 
 import (
     // this line is used by starport scaffolding # 1
+"github.com/lazyledger/lazyledger-app/x/lazyledgerapp/types"
+
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/lazyledger/lazyledger-app/x/lazyledgerapp/types"
+	
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -20,6 +22,12 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 
 		switch path[0] {
         // this line is used by starport scaffolding # 2
+	case types.QueryGetPayForMessage:
+		return getPayForMessage(ctx, path[1], k, legacyQuerierCdc)
+
+	case types.QueryListPayForMessage:
+		return listPayForMessage(ctx, k, legacyQuerierCdc)
+
 		default:
 			err = sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown %s query endpoint: %s", types.ModuleName, path[0])
 		}

@@ -4,12 +4,36 @@ package lazyledger.lazyledgerapp.lazyledgerapp;
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
 // this line is used by starport scaffolding # 1
+import "lazyledgerapp/PayForMessage.proto";
 
 option go_package = "github.com/lazyledger/lazyledger-app/x/lazyledgerapp/types";
 
 // Query defines the gRPC querier service.
 service Query {
     // this line is used by starport scaffolding # 2
+	rpc PayForMessage(QueryGetPayForMessageRequest) returns (QueryGetPayForMessageResponse) {
+		option (google.api.http).get = "/lazyledger/lazyledgerapp/lazyledgerapp/PayForMessage/{id}";
+	}
+	rpc PayForMessageAll(QueryAllPayForMessageRequest) returns (QueryAllPayForMessageResponse) {
+		option (google.api.http).get = "/lazyledger/lazyledgerapp/lazyledgerapp/PayForMessage";
+	}
+
 }
 
 // this line is used by starport scaffolding # 3
+message QueryGetPayForMessageRequest {
+	string id = 1;
+}
+
+message QueryGetPayForMessageResponse {
+	PayForMessage PayForMessage = 1;
+}
+
+message QueryAllPayForMessageRequest {
+	cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+message QueryAllPayForMessageResponse {
+	repeated PayForMessage PayForMessage = 1;
+	cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}

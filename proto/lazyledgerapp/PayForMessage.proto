@@ -1,0 +1,43 @@
+syntax = "proto3";
+package lazyledger.lazyledgerapp.lazyledgerapp;
+
+option go_package = "github.com/lazyledger/lazyledger-app/x/lazyledgerapp/types";
+
+import "gogoproto/gogo.proto";
+
+message PayForMessage {
+  string creator = 1;
+  string id = 2;
+  uint32 TxType = 3; 
+  uint64 TxFee = 4; 
+  uint64 Nonce = 5; 
+  bytes MsgNamespaceID = 6; 
+  uint64 MsgSize = 7; 
+  bytes MsgShareCommitment = 8; 
+}
+
+message MsgCreatePayForMessage {
+  string creator = 1;
+  uint32 TxType = 2; 
+  uint64 TxFee = 3; 
+  uint64 Nonce = 4; 
+  bytes MsgNamespaceID = 5; 
+  uint64 MsgSize = 6; 
+  bytes MsgShareCommitment = 7; 
+}
+
+message MsgUpdatePayForMessage {
+  string creator = 1;
+  string id = 2;
+  uint32 TxType = 3; 
+  uint64 TxFee = 4; 
+  uint64 Nonce = 5; 
+  bytes MsgNamespaceID = 6; 
+  uint64 MsgSize = 7; 
+  bytes MsgShareCommitment = 8; 
+}
+
+message MsgDeletePayForMessage {
+  string creator = 1;
+  string id = 2;
+}
