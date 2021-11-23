@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/celestiaorg/celestia-app/x/payment/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -82,12 +83,10 @@ func MockBlockCmd() *cobra.Command {
 				if resp.TxResponse.Code != 0 {
 					log.Println(fmt.Errorf("error when broadcasting tx: %w", err))
 				}
+
+				time.Sleep(time.Second * 3)
 			}
 		},
 	}
-	// connect to a node
-	// randomly generate wirePayForMessages
-	// randomly generate other transactions
-	// broadcast from the node
 	return command
 }
