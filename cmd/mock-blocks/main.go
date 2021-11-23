@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/pkg/consts"
 	"google.golang.org/grpc"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -39,6 +40,7 @@ func MockBlockCmd() *cobra.Command {
 			}
 
 			k := types.NewKeyringSigner(ring, userName, chainID)
+
 			for {
 				// fetch the latest account
 				err = k.QueryAccountNumber(context.TODO(), rpcClient)
@@ -60,7 +62,7 @@ func MockBlockCmd() *cobra.Command {
 				namespace := []byte{1, 1, 1, 1, 1, 1, 1, 1}
 				message := bytes.Repeat([]byte{1, 2, 3}, 1000)
 
-				msg, err := types.NewWirePayForMessage(namespace, message, 8, 16, 32, 64, 128)
+				msg, err := types.NewWirePayForMessage(namespace, message, consts.MaxSquareSize)
 				if err != nil {
 					return err
 				}
@@ -83,6 +85,8 @@ func MockBlockCmd() *cobra.Command {
 				if resp.TxResponse.Code != 0 {
 					log.Println(fmt.Errorf("error when broadcasting tx: %w", err))
 				}
+
+				log.Println("successfully posted message: ", resp.TxResponse.TxHash)
 
 				time.Sleep(time.Second * 3)
 			}
