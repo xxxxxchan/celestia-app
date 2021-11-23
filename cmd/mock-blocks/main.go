@@ -19,7 +19,7 @@ import (
 
 func MockBlockCmd() *cobra.Command {
 	command := &cobra.Command{
-		Use:  "mock-blocks [rpc-address] [keyring-user-name] [path-to-test-keyring] [flags]",
+		Use:  "mock-blocks [rpc-address] [keyring-user-name] [path-to-test-keyring] [chain-id] [flags]",
 		Args: cobra.MinimumNArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rpcAddr := args[0]
