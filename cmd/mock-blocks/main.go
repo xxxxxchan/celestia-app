@@ -34,7 +34,7 @@ func MockBlockCmd() *cobra.Command {
 			}
 
 			// load the keyring
-			ring, err := keyring.New("celestia-app", "test", keyringPath, nil)
+			ring, err := keyring.New("celes", "test", keyringPath, nil)
 			if err != nil {
 				return err
 			}
