@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/celestiaorg/celestia-app/x/payment/types"
@@ -19,7 +20,7 @@ import (
 
 func MockBlockCmd() *cobra.Command {
 	command := &cobra.Command{
-		Use:  "mock-blocks [rpc-address] [keyring-user-name] [path-to-test-keyring] [chain-id] [flags]",
+		Use:  "mock-blocks [rpc-address] [keyring-user-name] [chain-id] [path-to-test-keyring] [flags]",
 		Args: cobra.MinimumNArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rpcAddr := args[0]
@@ -34,7 +35,7 @@ func MockBlockCmd() *cobra.Command {
 			}
 
 			// load the keyring
-			ring, err := keyring.New("celes", "test", keyringPath, nil)
+			ring, err := keyring.New("celes", "test", keyringPath, strings.NewReader(""))
 			if err != nil {
 				return err
 			}
@@ -50,7 +51,7 @@ func MockBlockCmd() *cobra.Command {
 
 				builder := k.NewTxBuilder()
 
-				builder.SetGasLimit(100000000)
+				builder.SetGasLimit(10000000000)
 
 				coin := sdktypes.Coin{
 					Denom:  "celes",
@@ -60,9 +61,14 @@ func MockBlockCmd() *cobra.Command {
 				builder.SetFeeAmount(sdktypes.NewCoins(coin))
 
 				namespace := []byte{1, 1, 1, 1, 1, 1, 1, 1}
-				message := bytes.Repeat([]byte{1, 2, 3}, 1000)
+				message := bytes.Repeat([]byte{1, 2, 3}, 6000)
 
 				msg, err := types.NewWirePayForMessage(namespace, message, consts.MaxSquareSize)
+				if err != nil {
+					return err
+				}
+
+				err = msg.SignShareCommitments(k, builder)
 				if err != nil {
 					return err
 				}
@@ -83,12 +89,12 @@ func MockBlockCmd() *cobra.Command {
 				}
 
 				if resp.TxResponse.Code != 0 {
-					log.Println(fmt.Errorf("error when broadcasting tx: %w", err))
+					log.Println(fmt.Errorf("error when broadcasting tx: code %d: %s", resp.TxResponse.Code, resp.TxResponse.RawLog))
 				}
 
 				log.Println("successfully posted message: ", resp.TxResponse.TxHash)
 
-				time.Sleep(time.Second * 3)
+				time.Sleep(time.Second * 10)
 			}
 		},
 	}
