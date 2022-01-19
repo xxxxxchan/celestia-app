@@ -11,6 +11,7 @@ import (
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/pkg/consts"
+	coretypes "github.com/tendermint/tendermint/types"
 )
 
 const (
@@ -112,10 +113,19 @@ func BuildPayForMessageTxFromWireTx(
 // https://github.com/celestiaorg/celestia-specs/blob/master/src/rationale/message_block_layout.md#message-layout-rationale
 func CreateCommitment(k uint64, namespace, message []byte) ([]byte, error) {
 	// add padding to the message if necessary
-	message = padMessage(message)
+	msg := coretypes.Messages{
+		MessagesList: []coretypes.Message{
+			{
+				NamespaceID: namespace,
+				Data:        message,
+			},
+		},
+	}
 
-	// break message into shares
-	shares := chunkMessage(message)
+	// split into shares that are length delimited and include the namespace in
+	// each share
+	shares := msg.SplitIntoShares().RawShares()
+
 	// if the number of shares is larger than that in the square, throw an error
 	// note, we use k*k-1 here because at least a single share will be reserved
 	// for the transaction paying for the message, therefore the max number of
