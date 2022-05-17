@@ -166,7 +166,7 @@ func init() {
 // They are exported for convenience in creating helper functions, as object
 // capabilities aren't needed for testing.
 type App struct {
-	*baseapp.BaseApp // 扩展应用程序BaseApp使前者可以访问所有BaseApp的方法
+	*baseapp.BaseApp
 
 	cdc               *codec.LegacyAmino
 	appCodec          codec.Codec
