@@ -202,13 +202,13 @@ type MessageShareWriter struct {
 }
 ```
 
-These types are combined in a new celestia-app type, `squareWriter`, which is responsible for atomically writing transactions and their corresponding messages to the data square and the returned block data.
+These types are combined in a new celestia-app type, `shareSplitter`, which is responsible for atomically writing transactions and their corresponding messages to the data square and the returned block data.
 
 ```go
-// squareWriter writes a data square using provided block data. It also ensures
+// shareSplitter writes a data square using provided block data. It also ensures
 // that message and their corresponding txs get written to the square
 // atomically.
-type squareWriter struct {
+type shareSplitter struct {
    txWriter  *coretypes.ContiguousShareWriter
    msgWriter *coretypes.MessageShareWriter
    ...
@@ -228,7 +228,7 @@ func SplitShares(txConf client.TxConfig, squareSize uint64, data *core.Data) ([]
        processedTxs [][]byte
        messages     core.Messages
    )
-   sqwr, err := newSquareWriter(txConf, squareSize, data)
+   sqwr, err := newShareSplitter(txConf, squareSize, data)
    if err != nil {
        return nil, nil, err
    }
@@ -283,7 +283,7 @@ func SplitShares(txConf client.TxConfig, squareSize uint64, data *core.Data) ([]
 
 // writeTx marshals the tx and lazily writes it to the square. Returns true if
 // the write was successful, false if there was not enough room in the square.
-func (sqwr *squareWriter) writeTx(tx []byte) (ok bool, err error) {
+func (sqwr *shareSplitter) writeTx(tx []byte) (ok bool, err error) {
    delimTx, err := coretypes.Tx(tx).MarshalDelimited()
    if err != nil {
        return false, err
@@ -301,10 +301,10 @@ func (sqwr *squareWriter) writeTx(tx []byte) (ok bool, err error) {
 // its corresponding message provided that it has a MsgPayForData for the
 // preselected square size. Returns true if the write was successful, false if
 // there was not enough room in the square.
-func (sqwr *squareWriter) writeMalleatedTx(
+func (sqwr *shareSplitter) writeMalleatedTx(
    parentHash []byte,
    tx signing.Tx,
-   wpfm *types.MsgWirePayForData,
+   wpfd *types.MsgWirePayForData,
 ) (ok bool, malleatedTx coretypes.Tx, msg *core.Message, err error) {
    ... // process the malleated tx and extract the message.
 
@@ -339,18 +339,18 @@ During `ProcessProposal`, we
 func (app *App) ProcessProposal(req abci.RequestProcessProposal) abci.ResponseProcessProposal {
    // Check for message inclusion:
    //  - each MsgPayForData included in a block should have a corresponding message also in the block data
-   //  - the commitment in each PFM should match that of its corresponding message
+   //  - the commitment in each PFD should match that of its corresponding message
    //  - there should be no unpaid for messages
 
    // extract the commitments from any MsgPayForDatas in the block
    commitments := make(map[string]struct{})
    for _, rawTx := range req.BlockData.Txs {
        ...
-       commitments[string(pfm.MessageShareCommitment)] = struct{}{}
+       commitments[string(pfd.MessageShareCommitment)] = struct{}{}
        ...
    }
 
-   // quickly compare the number of PFMs and messages, if they aren't
+   // quickly compare the number of PFDs and messages, if they aren't
    // identical, then  we already know this block is invalid
    if len(commitments) != len(req.BlockData.Messages.MessagesList) {
        ... // logging and rejecting

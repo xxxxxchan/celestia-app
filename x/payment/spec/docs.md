@@ -16,10 +16,10 @@ While this transaction is created and signed by the user, it never actually ends
 
 The malleated transaction that is created from metadata contained in the original `MsgWirePayForData`. It also burns some of the sender’s funds.
 
-## PreProcessTxs
-The malleation process occurs during the PreProcessTxs step.
+## PrepareProposal
+The malleation process occurs during the PrepareProposal step.
 ```go
-// ProcessWirePayForData will perform the processing required by PreProcessTxs.
+// ProcessWirePayForData will perform the processing required by PrepareProposal.
 // It parses the MsgWirePayForData to produce the components needed to create a
 // single  MsgPayForData
 func ProcessWirePayForData(msg *MsgWirePayForData, squareSize uint64) (*tmproto.Message, *MsgPayForData, []byte, error) {
@@ -45,39 +45,43 @@ func ProcessWirePayForData(msg *MsgWirePayForData, squareSize uint64) (*tmproto.
 	}
 
 	// wrap the signed transaction data
-	pfm, err := msg.unsignedPayForData(squareSize)
+	pfd, err := msg.unsignedPayForData(squareSize)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return &coreMsg, pfm, shareCommit.Signature, nil
+	return &coreMsg, pfd, shareCommit.Signature, nil
 }
 
-// PreprocessTxs fulfills the celestia-core version of the ABCI interface, by
-// performing basic validation for the incoming txs, and by cleanly separating
-// share messages from transactions
-func (app *App) PreprocessTxs(txs abci.RequestPreprocessTxs) abci.ResponsePreprocessTxs {
-	squareSize := app.SquareSize()
-	var shareMsgs []*core.Message
-	var processedTxs [][]byte
-	for _, rawTx := range txs.Txs {
-        // boiler plate
-		...
-		// parse wire message and create a single message
-		coreMsg, unsignedPFM, sig, err := types.ProcessWirePayForData(wireMsg, app.SquareSize())
-		if err != nil {
-			continue
-		}
+// PrepareProposal fullfills the celestia-core version of the ACBI interface by
+// preparing the proposal block data. The square size is determined by first
+// estimating it via the size of the passed block data. Then the included
+// MsgWirePayForData messages are malleated into MsgPayForData messages by
+// separating the message and transaction that pays for that message. Lastly,
+// this method generates the data root for the proposal block and passes it the
+// blockdata.
+func (app *App) PrepareProposal(req abci.RequestPrepareProposal) abci.ResponsePrepareProposal {
+	squareSize := app.estimateSquareSize(req.BlockData)
 
-		// create the signed PayForData using the fees, gas limit, and sequence from
-		// the original transaction, along with the appropriate signature.
-		signedTx, err := types.BuildPayForDataTxFromWireTx(authTx, app.txConfig.NewTxBuilder(), sig, unsignedPFM)
-		if err != nil {
-			app.Logger().Error("failure to create signed PayForData", err)
-			continue
-		}
-    ...
-	// boiler plate
+	dataSquare, data := SplitShares(app.txConfig, squareSize, req.BlockData)
+
+	eds, err := da.ExtendShares(squareSize, dataSquare)
+	if err != nil {
+		app.Logger().Error(
+			"failure to erasure the data square while creating a proposal block",
+			"error",
+			err.Error(),
+		)
+		panic(err)
+	}
+
+	dah := da.NewDataAvailabilityHeader(eds)
+	data.Hash = dah.Hash()
+	data.OriginalSquareSize = squareSize
+
+	return abci.ResponsePrepareProposal{
+		BlockData: data,
+	}
 }
 ```
 
@@ -98,7 +102,7 @@ There are no parameters yet, but we might add
 There are tools to programmatically create, sign, and broadcast `MsgWirePayForDatas`
 ```go
 // create the raw WirePayForData transaction
-wpfmMsg, err := apptypes.NewWirePayForData(block.Header.NamespaceId, message, 16, 32, 64, 128)
+wpfdMsg, err := apptypes.NewWirePayForData(block.Header.NamespaceId, message, 16, 32, 64, 128)
 if err != nil {
     return err
 }
@@ -121,7 +125,7 @@ if err != nil {
 // generate the signatures for each `MsgPayForData` using the `KeyringSigner`, 
 // then set the gas limit for the tx 
 gasLimOption := types.SetGasLimit(200000)
-err = pfmMsg.SignShareCommitments(keyringSigner, gasLimOption)
+err = pfdMsg.SignShareCommitments(keyringSigner, gasLimOption)
 if err != nil {
     return err
 }
@@ -130,7 +134,7 @@ if err != nil {
 // for potential `MsgPayForData`s
 signedTx, err := keyringSigner.BuildSignedTx(
     gasLimOption(signer.NewTxBuilder()),
-    wpfmMsg,
+    wpfdMsg,
 )
 if err != nil {
     return err
